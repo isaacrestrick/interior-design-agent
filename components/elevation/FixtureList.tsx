@@ -18,7 +18,7 @@ export default function FixtureList({
       <h3 className="text-lg font-semibold">Fixtures</h3>
 
       {fixtures.length === 0 ? (
-        <p className="text-gray-500 text-sm">No fixtures added yet.</p>
+        <p className="text-gray-900 text-sm">No fixtures added yet.</p>
       ) : (
         <div className="space-y-2">
           {fixtures.map((fixture) => (
@@ -35,7 +35,7 @@ export default function FixtureList({
                     <h4 className="font-medium">{fixture.name}</h4>
                   </div>
 
-                  <div className="mt-2 text-sm text-gray-600 space-y-1">
+                  <div className="mt-2 text-sm text-gray-900 space-y-1">
                     <p>
                       Size: {fixture.widthInches}&quot; W × {fixture.heightInches}&quot; H
                     </p>
@@ -53,7 +53,7 @@ export default function FixtureList({
                       </a>
                     )}
                     {fixture.notes && (
-                      <p className="text-gray-500 italic">{fixture.notes}</p>
+                      <p className="text-gray-900 italic">{fixture.notes}</p>
                     )}
                   </div>
                 </div>

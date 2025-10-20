@@ -50,7 +50,7 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
     <div className="space-y-4">
       <div>
         <h3 className="text-lg font-semibold mb-2">AI Design Assistant</h3>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-900">
           Tell the AI what fixtures to add to this wall elevation. Be specific about dimensions and positions.
         </p>
       </div>
@@ -89,7 +89,7 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
         </div>
       )}
 
-      <div className="text-xs text-gray-500 space-y-1">
+      <div className="text-xs text-gray-900 space-y-1">
         <p className="font-semibold">Example commands:</p>
         <ul className="list-disc list-inside space-y-1">
           <li>Add a 24 by 8 inch vanity sink at position 30, 36</li>
