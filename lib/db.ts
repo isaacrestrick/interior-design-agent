@@ -1,5 +1,4 @@
 import { Client, Room, Wall, Fixture, WallWithFixtures } from '@/types';
-import { randomUUID } from 'crypto';
 
 // Simple in-memory database (replace with Prisma later)
 class Database {
@@ -12,7 +11,7 @@ class Database {
   createClient(data: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>): Client {
     const client: Client = {
       ...data,
-      id: randomUUID(),
+      id: crypto.randomUUID(),
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -32,7 +31,7 @@ class Database {
   createRoom(data: Omit<Room, 'id' | 'createdAt' | 'updatedAt'>): Room {
     const room: Room = {
       ...data,
-      id: randomUUID(),
+      id: crypto.randomUUID(),
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -52,7 +51,7 @@ class Database {
   createWall(data: Omit<Wall, 'id' | 'createdAt' | 'updatedAt'>): Wall {
     const wall: Wall = {
       ...data,
-      id: randomUUID(),
+      id: crypto.randomUUID(),
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -80,7 +79,7 @@ class Database {
   createFixture(data: Omit<Fixture, 'id' | 'createdAt' | 'updatedAt'>): Fixture {
     const fixture: Fixture = {
       ...data,
-      id: randomUUID(),
+      id: crypto.randomUUID(),
       createdAt: new Date(),
       updatedAt: new Date(),
     };
