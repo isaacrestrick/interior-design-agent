@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText } from 'ai';
+import { generateObject } from 'ai';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 
-// Schema for fixture validation (currently not used, but available for future structured output)
+// Schema for fixture validation with structured output
 const fixtureSchema = z.object({
   type: z.string().describe('Type of fixture (e.g., sink, mirror, light, outlet, window, cabinet)'),
   name: z.string().describe('Name or description of the fixture'),
@@ -14,6 +14,12 @@ const fixtureSchema = z.object({
   positionY: z.number().describe('Y position from the bottom edge of the wall in inches'),
   productUrl: z.string().optional().describe('URL to product information or specifications'),
   notes: z.string().optional().describe('Additional notes about the fixture'),
+});
+
+const aiResponseSchema = z.object({
+  action: z.enum(['add_fixture', 'clarify', 'error']).describe('What action to take based on the instruction'),
+  fixtures: z.array(fixtureSchema).optional().describe('Fixtures to add (only if action is add_fixture)'),
+  message: z.string().describe('Explanation or clarification message to show the user'),
 });
 
 export async function POST(request: NextRequest) {
@@ -44,7 +50,7 @@ export async function POST(request: NextRequest) {
       return handleManualParsing(instruction, wallId, wall);
     }
 
-    // Use AI to parse the instruction
+    // Use AI to parse the instruction with structured output
     const systemPrompt = `You are an AI assistant helping interior designers create wall elevations.
 
 Wall Information:
@@ -75,17 +81,19 @@ Important positioning rules:
   - Vanity lights: typically 75-80" from floor
   - Windows: vary, but often 36-48" from floor
 
-When the user provides vague instructions, make reasonable assumptions based on standard interior design practices.`;
+When the user provides clear instructions to add fixtures, set action to "add_fixture" and fill in the fixtures array with complete fixture data.
+If the instruction is unclear or asking a question, set action to "clarify" and provide helpful guidance in the message.`;
 
-    const result = await generateText({
+    const result = await generateObject({
       model: anthropic('claude-3-5-sonnet-20241022'),
+      schema: aiResponseSchema,
       system: systemPrompt,
       prompt: instruction,
       temperature: 0.3,
     });
 
-    // Parse the AI response to extract fixture information
-    const response = parseAIResponse(result.text, wallId);
+    // Process the structured AI response
+    const response = processAIResponse(result.object, wallId);
 
     return NextResponse.json(response);
   } catch (error) {
@@ -97,13 +105,34 @@ When the user provides vague instructions, make reasonable assumptions based on 
   }
 }
 
-function parseAIResponse(aiText: string, wallId: string) {
-  // This is a simplified parser - in production, you'd use structured output or more sophisticated parsing
-  // For now, return the AI's analysis and let the frontend handle it
+function processAIResponse(aiResponse: z.infer<typeof aiResponseSchema>, wallId: string) {
+  // If the AI wants to add fixtures, create them in the database
+  if (aiResponse.action === 'add_fixture' && aiResponse.fixtures && aiResponse.fixtures.length > 0) {
+    const createdFixtures = aiResponse.fixtures.map(fixtureData => {
+      return db.createFixture({
+        type: fixtureData.type,
+        name: fixtureData.name,
+        widthInches: fixtureData.widthInches,
+        heightInches: fixtureData.heightInches,
+        positionX: fixtureData.positionX,
+        positionY: fixtureData.positionY,
+        wallId,
+        productUrl: fixtureData.productUrl,
+        notes: fixtureData.notes,
+      });
+    });
+
+    return {
+      action: 'add_fixture',
+      fixtures: createdFixtures,
+      message: aiResponse.message,
+    };
+  }
+
+  // Otherwise, return the clarification or error message
   return {
-    action: 'clarify',
-    message: aiText,
-    wallId,
+    action: aiResponse.action,
+    message: aiResponse.message,
   };
 }
 
