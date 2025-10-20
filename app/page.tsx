@@ -5,7 +5,7 @@ import ElevationCanvas from '@/components/elevation/ElevationCanvas';
 import FixtureList from '@/components/elevation/FixtureList';
 import AIAgentChat from '@/components/AIAgentChat';
 import { WallWithFixtures } from '@/types';
-import { initializeSampleData } from '@/lib/db';
+import { sampleWallId } from '@/lib/db';
 
 export default function Home() {
   const [wall, setWall] = useState<WallWithFixtures | null>(null);
@@ -13,10 +13,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize sample data
-    const { wall: sampleWall } = initializeSampleData();
-    setWallId(sampleWall.id);
-    loadWall(sampleWall.id);
+    // Load the sample wall (data is initialized on server)
+    setWallId(sampleWallId);
+    loadWall(sampleWallId);
   }, []);
 
   const loadWall = async (id: string) => {
