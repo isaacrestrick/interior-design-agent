@@ -117,7 +117,7 @@ class Database {
 export const db = new Database();
 
 // Initialize with sample data
-export function initializeSampleData() {
+function initializeSampleData() {
   const client = db.createClient({
     name: "Sample Client",
     email: "client@example.com",
@@ -182,3 +182,7 @@ export function initializeSampleData() {
 
   return { client, room, wall };
 }
+
+// Auto-initialize sample data on server startup
+const sampleData = initializeSampleData();
+export const sampleWallId = sampleData.wall.id;
