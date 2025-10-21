@@ -296,30 +296,63 @@ export default function ElevationCanvas({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="border rounded-lg p-4 bg-gray-50 overflow-auto">
+    <div className="space-y-6">
+      <div className="relative border-2 border-gray-200 rounded-2xl p-6 bg-gradient-to-br from-gray-50 to-blue-50 overflow-auto shadow-inner">
+        {dragState && (
+          <div className="absolute top-4 right-4 z-10 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 animate-fade-in">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+            Dragging fixture...
+          </div>
+        )}
+        {isSaving && (
+          <div className="absolute top-4 right-4 z-10 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 animate-fade-in">
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Saving...
+          </div>
+        )}
         <canvas
           ref={canvasRef}
-          className="mx-auto bg-white shadow-lg"
+          className="mx-auto bg-white shadow-2xl rounded-lg border border-gray-300 hover:shadow-3xl transition-shadow duration-300"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
         />
+        <div className="mt-4 text-center">
+          <p className="text-xs text-gray-500 italic">Click and drag fixtures to reposition them on the elevation</p>
+        </div>
       </div>
 
-      <div className="flex justify-between items-center">
-        <div className="text-sm text-black">
-          <p className="font-semibold text-black">{wall.name}</p>
-          <p>
-            {wall.widthFeet}&apos; × {wall.heightFeet}&apos; | {wall.fixtures.length} fixture(s)
-          </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50 rounded-xl p-4 border border-gray-200">
+        <div className="flex items-center gap-4">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
+              <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+              </svg>
+              <span className="font-medium text-gray-700">{wall.fixtures.length} Fixture{wall.fixtures.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600 text-sm">
+              <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span className="font-medium text-gray-700">{wall.widthFeet}&apos; × {wall.heightFeet}&apos; Wall</span>
+            </div>
+          </div>
         </div>
 
         <button
           onClick={handleExport}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl font-medium text-sm"
         >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
           Export as PNG
         </button>
       </div>
