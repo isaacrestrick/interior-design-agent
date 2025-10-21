@@ -308,17 +308,15 @@ export default function ElevationCanvas({
             Saving...
           </div>
         )}
-        <div className="flex-1 flex items-center justify-center min-h-0">
-          <canvas
-            ref={canvasRef}
-            className="bg-white shadow-2xl rounded-lg border border-gray-300 hover:shadow-3xl transition-shadow duration-300 max-w-full max-h-full object-contain"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseLeave}
-          />
-        </div>
-        <div className="mt-4 text-center flex-shrink-0">
+        <canvas
+          ref={canvasRef}
+          className="mx-auto bg-white shadow-2xl rounded-lg border border-gray-300 hover:shadow-3xl transition-shadow duration-300"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+        />
+        <div className="mt-4 text-center">
           <p className="text-xs text-gray-500 italic">Click and drag fixtures to reposition them on the elevation</p>
         </div>
       </div>
