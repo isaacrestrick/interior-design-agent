@@ -79,7 +79,7 @@ export default function Home() {
           <h1 className="text-3xl font-bold text-gray-900">
             Interior Design Agent
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-800 mt-1">
             AI-powered wall elevation designer
           </p>
         </div>
@@ -92,7 +92,7 @@ export default function Home() {
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="mb-4">
                 <h2 className="text-2xl font-semibold">{wall.name}</h2>
-                <p className="text-gray-600">
+                <p className="text-gray-800">
                   {wall.widthFeet}&apos; W × {wall.heightFeet}&apos; H
                   (Scale: 1/2&quot; = 1&apos;-0&quot;)
                 </p>
@@ -141,21 +141,21 @@ export default function Home() {
             <div>
               <div className="text-3xl mb-2">1️⃣</div>
               <h3 className="font-semibold mb-2">Describe Your Design</h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-800">
                 Use natural language to tell the AI what fixtures you want to add to the wall elevation.
               </p>
             </div>
             <div>
               <div className="text-3xl mb-2">2️⃣</div>
               <h3 className="font-semibold mb-2">Specify Details</h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-800">
                 Include dimensions (width × height in inches) and position (X, Y from bottom-left corner).
               </p>
             </div>
             <div>
               <div className="text-3xl mb-2">3️⃣</div>
               <h3 className="font-semibold mb-2">View & Export</h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-800">
                 See your elevation update in real-time and export as PNG when ready to share with clients.
               </p>
             </div>
@@ -202,7 +202,7 @@ export default function Home() {
       </main>
 
       <footer className="bg-white border-t mt-12">
-        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-600">
+        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-800">
           <p>Interior Design Agent - Built with Next.js & AI</p>
           <p className="mt-1">
             To use the AI features, add your <code className="bg-gray-100 px-2 py-1 rounded">ANTHROPIC_API_KEY</code> to the .env file
