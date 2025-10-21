@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Fixture } from '@/types';
 
 interface AIAgentChatProps {
   wallId: string;
-  onFixturesUpdated: () => void;
+  onFixturesUpdated: (fixtures?: Fixture[]) => void;
 }
 
 type ChatRole = 'user' | 'assistant';
@@ -49,17 +49,18 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
     [messages]
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const instruction = draft.trim();
-    if (!instruction) return;
+  const processInstruction = useCallback(async (rawInstruction: string) => {
+    const instruction = rawInstruction.trim();
+    if (!instruction || loading) {
+      return;
+    }
 
     const userMessage: ChatMessage = {
       id: makeMessageId(),
       role: 'user',
       content: instruction,
     };
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setDraft('');
     setLoading(true);
 
@@ -80,11 +81,10 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
 
       if (res.ok) {
         const fixturesAdded = Array.isArray(data.fixtures) ? data.fixtures.length : 0;
-        if (
-          (data.action === 'add_fixture' || data.action === 'update_fixture') &&
-          fixturesAdded > 0
-        ) {
-          onFixturesUpdated();
+        const shouldRefresh = data.action === 'add_fixture' || data.action === 'update_fixture';
+
+        if (shouldRefresh) {
+          onFixturesUpdated(fixturesAdded > 0 ? data.fixtures : undefined);
         }
         const assistantMessage: ChatMessage = {
           id: makeMessageId(),
@@ -94,11 +94,8 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
           action: data.action,
         };
 
-        setMessages((prev) => [...prev, assistantMessage]);
-        if (
-          (data.action === 'add_fixture' || data.action === 'update_fixture') &&
-          fixturesAdded === 0
-        ) {
+        setMessages(prev => [...prev, assistantMessage]);
+        if (shouldRefresh && fixturesAdded === 0) {
           const warningMessage: ChatMessage = {
             id: makeMessageId(),
             role: 'assistant',
@@ -106,7 +103,7 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
               'I expected to add a fixture, but the structured data was incomplete. Try restating the dimensions and position.',
             isError: true,
           };
-          setMessages((prev) => [...prev, warningMessage]);
+          setMessages(prev => [...prev, warningMessage]);
         }
       } else {
         const errorMessage: ChatMessage = {
@@ -115,7 +112,7 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
           content: `Error: ${data.error || 'Unknown error'}`,
           isError: true,
         };
-        setMessages((prev) => [...prev, errorMessage]);
+        setMessages(prev => [...prev, errorMessage]);
       }
     } catch (error) {
       const fallbackError =
@@ -126,9 +123,21 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
         content: `Error: ${fallbackError}`,
         isError: true,
       };
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
+    }
+  }, [loading, messagePayload, onFixturesUpdated, wallId]);
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    void processInstruction(draft);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      void processInstruction(draft);
     }
   };
 
@@ -197,12 +206,16 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
           id="instruction"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Add a 24 by 8 inch sink at 30, 36"
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[80px] text-sm text-gray-900 placeholder:text-gray-400"
           disabled={loading}
         />
 
-        <div className="flex items-center justify-end">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <p className="text-xs text-gray-500">
+            Press ⌘ + Enter (Ctrl + Enter on Windows) to send
+          </p>
           <button
             type="submit"
             disabled={loading || !draft.trim()}

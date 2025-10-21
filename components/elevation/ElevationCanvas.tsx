@@ -5,7 +5,6 @@ import { WallWithFixtures, Fixture } from '@/types';
 import {
   calculateCanvasDimensions,
   drawElevation,
-  exportElevationAsImage,
   pixelsToInches,
   inchesToPixels,
   getFixtureAtPosition,
@@ -15,7 +14,6 @@ import {
 interface ElevationCanvasProps {
   wall: WallWithFixtures;
   targetWidth?: number;
-  onExport?: (dataUrl: string) => void;
   onFixtureUpdate?: () => Promise<void> | void;
 }
 
@@ -37,7 +35,6 @@ const POSITION_EPSILON = 0.05;
 export default function ElevationCanvas({
   wall,
   targetWidth = 800,
-  onExport,
   onFixtureUpdate,
 }: ElevationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -108,13 +105,29 @@ export default function ElevationCanvas({
     drawElevation(ctx, tempWall, dimensions);
   }, [tempWall, targetWidth]);
 
+  const getCanvasCoordinates = useCallback(
+    (canvas: HTMLCanvasElement, event: React.MouseEvent<HTMLCanvasElement>) => {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        return { x: 0, y: 0 };
+      }
+
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      return {
+        x: (event.clientX - rect.left) * scaleX,
+        y: (event.clientY - rect.top) * scaleY,
+      };
+    },
+    []
+  );
+
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = getCanvasCoordinates(canvas, e);
 
     const dimensions = calculateCanvasDimensions(tempWall, targetWidth);
     const fixture = getFixtureAtPosition(tempWall, x, y, dimensions);
@@ -133,15 +146,13 @@ export default function ElevationCanvas({
       };
       canvas.style.cursor = 'grabbing';
     }
-  }, [tempWall, targetWidth]);
+  }, [tempWall, targetWidth, getCanvasCoordinates]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = getCanvasCoordinates(canvas, e);
 
     if (dragState) {
       // Calculate new position in pixels
@@ -185,7 +196,7 @@ export default function ElevationCanvas({
       const fixture = getFixtureAtPosition(tempWall, x, y, dimensions);
       canvas.style.cursor = fixture ? 'grab' : 'default';
     }
-  }, [dragState, tempWall, targetWidth]);
+  }, [dragState, tempWall, targetWidth, getCanvasCoordinates]);
 
   const handleMouseUp = useCallback(async (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -194,9 +205,7 @@ export default function ElevationCanvas({
     if (dragState) {
       canvas.style.cursor = 'grab';
 
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const { x, y } = getCanvasCoordinates(canvas, e);
 
       const dimensions = calculateCanvasDimensions(tempWall, targetWidth);
       const newX = x - dragState.offsetX;
@@ -269,7 +278,7 @@ export default function ElevationCanvas({
         setIsSaving(false);
       }
     }
-  }, [dragState, tempWall, targetWidth, wall, onFixtureUpdate]);
+  }, [dragState, tempWall, targetWidth, wall, onFixtureUpdate, getCanvasCoordinates]);
 
   const handleMouseLeave = useCallback(() => {
     const canvas = canvasRef.current;
@@ -279,25 +288,9 @@ export default function ElevationCanvas({
     // Don't cancel drag on mouse leave - let user finish drag
   }, []);
 
-  const handleExport = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const dataUrl = exportElevationAsImage(canvas);
-    if (onExport) {
-      onExport(dataUrl);
-    } else {
-      // Download the image
-      const link = document.createElement('a');
-      link.download = `${wall.name}-elevation.png`;
-      link.href = dataUrl;
-      link.click();
-    }
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="relative border-2 border-gray-200 rounded-2xl p-6 bg-gradient-to-br from-gray-50 to-blue-50 overflow-auto shadow-inner">
+    <div className="h-full flex flex-col">
+      <div className="relative border-2 border-gray-200 rounded-2xl p-6 bg-gradient-to-br from-gray-50 to-blue-50 overflow-hidden shadow-inner flex-1 flex flex-col min-h-0">
         {dragState && (
           <div className="absolute top-4 right-4 z-10 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 animate-fade-in">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -326,35 +319,6 @@ export default function ElevationCanvas({
         <div className="mt-4 text-center">
           <p className="text-xs text-gray-500 italic">Click and drag fixtures to reposition them on the elevation</p>
         </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50 rounded-xl p-4 border border-gray-200">
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
-              <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-              </svg>
-              <span className="font-medium text-gray-700">{wall.fixtures.length} Fixture{wall.fixtures.length !== 1 ? 's' : ''}</span>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600 text-sm">
-              <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              <span className="font-medium text-gray-700">{wall.widthFeet}&apos; × {wall.heightFeet}&apos; Wall</span>
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl font-medium text-sm"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Export as PNG
-        </button>
       </div>
     </div>
   );
