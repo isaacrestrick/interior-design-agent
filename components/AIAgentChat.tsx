@@ -48,33 +48,32 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
     container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
-  const messagePayload = useMemo(
-    () =>
-      messages.map(({ role, content }) => ({
-        role,
-        content,
-      })),
-    [messages]
-  );
-
   const processInstruction = useCallback(async (rawInstruction: string) => {
     const instruction = rawInstruction.trim();
-    if (!instruction || loading) {
+    if (!instruction) {
       return;
     }
+
+    setLoading(prev => {
+      if (prev) return prev; // Already loading
+      return true;
+    });
 
     const userMessage: ChatMessage = {
       id: makeMessageId(),
       role: 'user',
       content: instruction,
     };
-    setMessages(prev => [...prev, userMessage]);
+
+    let conversation: Array<{ role: ChatRole; content: string }> = [];
+    setMessages(prev => {
+      conversation = [...prev.map(({ role, content }) => ({ role, content })), { role: 'user', content: instruction }];
+      return [...prev, userMessage];
+    });
+
     setDraft('');
-    setLoading(true);
 
     try {
-      const conversation = [...messagePayload, { role: 'user', content: instruction }];
-
       const res = await fetch('/api/ai-agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -135,7 +134,7 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
     } finally {
       setLoading(false);
     }
-  }, [loading, messagePayload, onFixturesUpdated, wallId]);
+  }, [onFixturesUpdated, wallId]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -149,13 +148,9 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
     }
   };
 
-  const handleQuickPrompt = useCallback(
-    (prompt: string) => {
-      setDraft(prompt);
-      void processInstruction(prompt);
-    },
-    [processInstruction]
-  );
+  const handleQuickPrompt = (prompt: string) => {
+    void processInstruction(prompt);
+  };
 
   const renderMessage = (message: ChatMessage) => {
     const isUser = message.role === 'user';
