@@ -143,96 +143,148 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
 
   const renderMessage = (message: ChatMessage) => {
     const isUser = message.role === 'user';
-    const alignment = isUser ? 'justify-end' : 'justify-start';
+    const bubbleColor = isUser
+      ? 'bg-blue-600 text-white shadow-[0_10px_30px_rgba(37,99,235,0.25)]'
+      : message.isError
+        ? 'bg-red-50 text-red-900 border border-red-200 shadow-[0_10px_30px_rgba(248,113,113,0.2)]'
+        : 'bg-white text-gray-800 border border-gray-200 shadow-[0_15px_45px_rgba(15,23,42,0.08)]';
+    const fixturesSectionBorder = isUser ? 'border-white/40' : 'border-gray-200';
 
     return (
-      <div key={message.id} className={`flex ${alignment}`}>
-        <div className="max-w-[85%]">
-          <div
-            className={`px-3 py-2 rounded-lg text-sm ${
-              isUser
-                ? 'bg-blue-600 text-white'
-                : message.isError
-                  ? 'bg-red-50 text-red-900 border border-red-200'
-                  : 'bg-white text-gray-800 border border-gray-200'
-            }`}
-          >
-            <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>
+      <div
+        key={message.id}
+        className={`flex gap-3 ${isUser ? 'flex-row-reverse text-right' : 'text-left'}`}
+      >
+        <div
+          className={`mt-1 flex h-10 w-10 shrink-0 select-none items-center justify-center rounded-full text-sm font-semibold ${
+            isUser ? 'bg-blue-600 text-white' : 'bg-gray-900 text-white'
+          }`}
+        >
+          {isUser ? 'You' : 'AI'}
+        </div>
+        <div className="max-w-[85%] space-y-2">
+          <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${bubbleColor}`}>
+            <p className="whitespace-pre-wrap">{message.content}</p>
             {message.fixtures && message.fixtures.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-white/20 space-y-1">
-                {message.fixtures.map((fixture) => (
-                  <div key={fixture.id} className="text-xs opacity-90">
-                    <span className="font-medium">{fixture.name}</span>
-                    {' - '}
-                    <span>{fixture.widthInches}&quot; × {fixture.heightInches}&quot;</span>
-                    {' at '}
-                    <span>({fixture.positionX.toFixed(0)}&quot;, {fixture.positionY.toFixed(0)}&quot;)</span>
-                  </div>
-                ))}
+              <div className={`mt-3 border-t pt-3 text-xs opacity-90 ${fixturesSectionBorder}`}>
+                <p className="mb-2 font-semibold uppercase tracking-wide text-[10px] opacity-80">
+                  Fixtures Added
+                </p>
+                <div className="space-y-1">
+                  {message.fixtures.map((fixture) => (
+                    <div key={fixture.id} className="flex flex-wrap items-center gap-1">
+                      <span className="font-medium">{fixture.name}</span>
+                      <span className="opacity-70">• {fixture.widthInches}&quot; × {fixture.heightInches}&quot;</span>
+                      <span className="opacity-70">• ({fixture.positionX.toFixed(0)}&quot;, {fixture.positionY.toFixed(0)}&quot;)</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
+          <p className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
+            {isUser ? 'Client' : message.isError ? 'System Alert' : 'Design Assistant'}
+          </p>
         </div>
       </div>
     );
   };
 
+  const examplePrompts = [
+    'Add a 24 by 8 inch sink at 30, 36',
+    'Place a 30 by 36 inch mirror at 27, 48',
+    'Add a 24 by 6 inch light at 24, 78',
+  ];
+
+  const handleExampleClick = (example: string) => {
+    setDraft(example);
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="border-b border-gray-200 pb-3">
-        <h3 className="text-lg font-semibold text-gray-900">AI Assistant</h3>
-        <p className="text-sm text-gray-600 mt-1">
-          Describe fixtures to add with dimensions and positions
-        </p>
-      </div>
-
-      <div
-        ref={scrollContainerRef}
-        className="h-80 overflow-y-auto space-y-3 rounded-lg p-3 bg-gray-50 border border-gray-200"
-        style={{ scrollbarWidth: 'thin' }}
-      >
-        {messages.map(renderMessage)}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm text-gray-600">
-              Thinking...
-            </div>
+    <div className="flex h-full flex-col">
+      <div className="relative flex h-full min-h-[560px] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 shadow-xl">
+        <div className="relative flex items-start justify-between gap-3 border-b border-slate-200/80 bg-white/70 px-6 py-5 backdrop-blur">
+          <div>
+            <h3 className="text-xl font-semibold text-slate-900">AI Design Assistant</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Describe fixtures to add with precise dimensions and wall positions.
+            </p>
           </div>
-        )}
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <textarea
-          id="instruction"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Add a 24 by 8 inch sink at 30, 36"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[80px] text-sm text-gray-900 placeholder:text-gray-400"
-          disabled={loading}
-        />
-
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <p className="text-xs text-gray-500">
-            Press ⌘ + Enter (Ctrl + Enter on Windows) to send
-          </p>
-          <button
-            type="submit"
-            disabled={loading || !draft.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm font-medium"
-          >
-            {loading ? 'Processing...' : 'Send'}
-          </button>
+          <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" aria-hidden />
+            Ready
+          </span>
         </div>
-      </form>
 
-      <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-        <p className="font-semibold text-xs text-gray-700 mb-2">Examples:</p>
-        <ul className="space-y-1 text-xs text-gray-600">
-          <li>• Add a 24 by 8 inch sink at 30, 36</li>
-          <li>• Place a 30 by 36 inch mirror at 27, 48</li>
-          <li>• Add a 24 by 6 inch light at 24, 78</li>
-        </ul>
+        <div className="flex-1 overflow-y-auto px-6 py-6" ref={scrollContainerRef} style={{ scrollbarWidth: 'thin' }}>
+          <div className="flex flex-col gap-6">
+            {messages.map(renderMessage)}
+            {loading && (
+              <div className="flex items-start gap-3 text-left">
+                <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-gray-900 text-sm font-semibold text-white">
+                  AI
+                </div>
+                <div className="max-w-[85%] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-[0_15px_45px_rgba(15,23,42,0.08)]">
+                  Thinking…
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="border-t border-slate-200/80 bg-white/85 px-6 py-5 backdrop-blur">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <div className="flex items-end gap-3 rounded-2xl border border-slate-200 bg-white shadow-sm focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-100 transition">
+              <textarea
+                id="instruction"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Tell the assistant what to place on the wall…"
+                className="max-h-40 w-full resize-none border-0 bg-transparent px-4 py-3 text-sm leading-6 text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                disabled={loading}
+                rows={2}
+              />
+              <div className="flex shrink-0 flex-col items-center gap-2 px-3 pb-3">
+                <button
+                  type="submit"
+                  disabled={loading || !draft.trim()}
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  aria-label="Send message"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                  >
+                    <path d="M3 5l7.5 7.5L3 20l18-7.5L3 5z" />
+                  </svg>
+                </button>
+                <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                  ⌘ / Ctrl + ↵
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {examplePrompts.map((example) => (
+                <button
+                  key={example}
+                  type="button"
+                  onClick={() => handleExampleClick(example)}
+                  className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-600 transition hover:border-blue-400 hover:text-blue-600 hover:shadow-sm"
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
