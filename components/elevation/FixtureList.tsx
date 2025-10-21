@@ -15,10 +15,10 @@ export default function FixtureList({
 }: FixtureListProps) {
   return (
     <div className="space-y-2">
-      <h3 className="text-lg font-semibold">Fixtures</h3>
+      <h3 className="text-lg font-semibold text-black">Fixtures</h3>
 
       {fixtures.length === 0 ? (
-        <p className="text-gray-900 text-sm">No fixtures added yet.</p>
+        <p className="text-black text-sm">No fixtures added yet.</p>
       ) : (
         <div className="space-y-2">
           {fixtures.map((fixture) => (
@@ -32,10 +32,10 @@ export default function FixtureList({
                     <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
                       {fixture.type}
                     </span>
-                    <h4 className="font-medium">{fixture.name}</h4>
+                    <h4 className="font-medium text-black">{fixture.name}</h4>
                   </div>
 
-                  <div className="mt-2 text-sm text-gray-900 space-y-1">
+                  <div className="mt-2 text-sm text-black space-y-1">
                     <p>
                       Size: {fixture.widthInches}&quot; W × {fixture.heightInches}&quot; H
                     </p>
@@ -53,7 +53,7 @@ export default function FixtureList({
                       </a>
                     )}
                     {fixture.notes && (
-                      <p className="text-gray-900 italic">{fixture.notes}</p>
+                      <p className="text-black italic">{fixture.notes}</p>
                     )}
                   </div>
                 </div>

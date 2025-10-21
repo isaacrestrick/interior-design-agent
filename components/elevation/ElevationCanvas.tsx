@@ -64,8 +64,8 @@ export default function ElevationCanvas({
       </div>
 
       <div className="flex justify-between items-center">
-        <div className="text-sm text-gray-900">
-          <p className="font-semibold">{wall.name}</p>
+        <div className="text-sm text-black">
+          <p className="font-semibold text-black">{wall.name}</p>
           <p>
             {wall.widthFeet}&apos; × {wall.heightFeet}&apos; | {wall.fixtures.length} fixture(s)
           </p>

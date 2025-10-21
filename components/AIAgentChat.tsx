@@ -49,15 +49,15 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-lg font-semibold mb-2">AI Design Assistant</h3>
-        <p className="text-sm text-gray-900">
+        <h3 className="text-lg font-semibold mb-2 text-black">AI Design Assistant</h3>
+        <p className="text-sm text-black">
           Tell the AI what fixtures to add to this wall elevation. Be specific about dimensions and positions.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
-          <label htmlFor="instruction" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="instruction" className="block text-sm font-medium text-black mb-1">
             Your Instructions
           </label>
           <textarea
@@ -65,7 +65,7 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
             value={instruction}
             onChange={(e) => setInstruction(e.target.value)}
             placeholder="Example: Add a 24 by 8 inch sink at 30 inches from left and 36 inches from bottom"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] text-black placeholder:text-gray-400"
             disabled={loading}
           />
         </div>
@@ -89,8 +89,8 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
         </div>
       )}
 
-      <div className="text-xs text-gray-900 space-y-1">
-        <p className="font-semibold">Example commands:</p>
+      <div className="text-xs text-black space-y-1">
+        <p className="font-semibold text-black">Example commands:</p>
         <ul className="list-disc list-inside space-y-1">
           <li>Add a 24 by 8 inch vanity sink at position 30, 36</li>
           <li>Place a 30 by 36 inch mirror at 27 inches from left, 48 inches from bottom</li>
