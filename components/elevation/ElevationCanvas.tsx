@@ -7,6 +7,7 @@ import {
   drawElevation,
   exportElevationAsImage,
   pixelsToInches,
+  inchesToPixels,
   getFixtureAtPosition,
   getFixturePixelPosition,
 } from '@/lib/elevation/renderer';
@@ -15,7 +16,7 @@ interface ElevationCanvasProps {
   wall: WallWithFixtures;
   targetWidth?: number;
   onExport?: (dataUrl: string) => void;
-  onFixtureUpdate?: () => void;
+  onFixtureUpdate?: () => Promise<void> | void;
 }
 
 interface DragState {
@@ -23,6 +24,15 @@ interface DragState {
   offsetX: number;
   offsetY: number;
 }
+
+interface PendingUpdate {
+  fixtureId: string;
+  positionX: number;
+  positionY: number;
+  sourceWall: WallWithFixtures;
+}
+
+const POSITION_EPSILON = 0.05;
 
 export default function ElevationCanvas({
   wall,
@@ -33,13 +43,53 @@ export default function ElevationCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [tempWall, setTempWall] = useState<WallWithFixtures>(wall);
+  const [isSaving, setIsSaving] = useState(false);
+  const [pendingUpdate, setPendingUpdate] = useState<PendingUpdate | null>(null);
+  const latestDragPositionRef = useRef<{ positionX: number; positionY: number } | null>(null);
 
-  // Update tempWall when wall changes (unless we're dragging)
+  // Sync temp wall with server data once drag finishes and the updated wall arrives.
   useEffect(() => {
-    if (!dragState) {
+    if (dragState) {
+      return;
+    }
+
+    if (pendingUpdate) {
+      if (wall !== pendingUpdate.sourceWall) {
+        const incomingFixture = wall.fixtures.find(f => f.id === pendingUpdate.fixtureId);
+
+        if (incomingFixture) {
+          const deltaX = Math.abs(incomingFixture.positionX - pendingUpdate.positionX);
+          const deltaY = Math.abs(incomingFixture.positionY - pendingUpdate.positionY);
+
+          if (deltaX <= POSITION_EPSILON && deltaY <= POSITION_EPSILON) {
+            const adjustedWall: WallWithFixtures = {
+              ...wall,
+              fixtures: wall.fixtures.map(f =>
+                f.id === pendingUpdate.fixtureId
+                  ? {
+                      ...f,
+                      positionX: pendingUpdate.positionX,
+                      positionY: pendingUpdate.positionY,
+                    }
+                  : f
+              ),
+            };
+            setTempWall(adjustedWall);
+            setPendingUpdate(null);
+            return;
+          }
+        }
+
+        setTempWall(wall);
+        setPendingUpdate(null);
+      }
+      return;
+    }
+
+    if (!isSaving) {
       setTempWall(wall);
     }
-  }, [wall, dragState]);
+  }, [wall, dragState, isSaving, pendingUpdate]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -77,6 +127,10 @@ export default function ElevationCanvas({
         offsetX: x - fixturePixelPos.x,
         offsetY: y - fixturePixelPos.y,
       });
+      latestDragPositionRef.current = {
+        positionX: fixture.positionX,
+        positionY: fixture.positionY,
+      };
       canvas.style.cursor = 'grabbing';
     }
   }, [tempWall, targetWidth]);
@@ -98,27 +152,33 @@ export default function ElevationCanvas({
 
       // Convert back to inches
       const newPositionX = pixelsToInches(newX, dimensions.pixelsPerInch);
-      const fixtureHeightPixels = pixelsToInches(
+      const fixtureHeightPixels = inchesToPixels(
         dragState.fixture.heightInches,
         dimensions.pixelsPerInch
-      ) * dimensions.pixelsPerInch / (tempWall.heightFeet * 12);
+      );
 
       // Y position is from bottom, need to convert from top
-      const totalHeightPixels = dimensions.height - 40; // Subtract label space
-      const newPositionY = pixelsToInches(
+      const totalHeightPixels = dimensions.height;
+      const unclampedPositionY = pixelsToInches(
         totalHeightPixels - newY - fixtureHeightPixels,
         dimensions.pixelsPerInch
       );
+      const clampedPositionX = Math.max(0, newPositionX);
+      const clampedPositionY = Math.max(0, unclampedPositionY);
 
       // Update temp wall with new position
       setTempWall(prev => ({
         ...prev,
         fixtures: prev.fixtures.map(f =>
           f.id === dragState.fixture.id
-            ? { ...f, positionX: Math.max(0, newPositionX), positionY: Math.max(0, newPositionY) }
+            ? { ...f, positionX: clampedPositionX, positionY: clampedPositionY }
             : f
         ),
       }));
+      latestDragPositionRef.current = {
+        positionX: clampedPositionX,
+        positionY: clampedPositionY,
+      };
     } else {
       // Update cursor based on whether we're hovering over a fixture
       const dimensions = calculateCanvasDimensions(tempWall, targetWidth);
@@ -127,42 +187,89 @@ export default function ElevationCanvas({
     }
   }, [dragState, tempWall, targetWidth]);
 
-  const handleMouseUp = useCallback(async () => {
+  const handleMouseUp = useCallback(async (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     if (dragState) {
       canvas.style.cursor = 'grab';
 
-      // Find the updated fixture in tempWall
-      const updatedFixture = tempWall.fixtures.find(f => f.id === dragState.fixture.id);
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
 
-      if (updatedFixture) {
-        // Save to API
-        try {
-          await fetch(`/api/fixtures/${dragState.fixture.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              positionX: updatedFixture.positionX,
-              positionY: updatedFixture.positionY,
-            }),
-          });
+      const dimensions = calculateCanvasDimensions(tempWall, targetWidth);
+      const newX = x - dragState.offsetX;
+      const newY = y - dragState.offsetY;
+      const fixtureHeightPixels = inchesToPixels(
+        dragState.fixture.heightInches,
+        dimensions.pixelsPerInch
+      );
+      const totalHeightPixels = dimensions.height;
 
-          // Notify parent to refresh data
-          if (onFixtureUpdate) {
-            onFixtureUpdate();
-          }
-        } catch (error) {
-          console.error('Failed to update fixture position:', error);
-          // Revert to original position on error
-          setTempWall(wall);
+      const rawPositionX = pixelsToInches(newX, dimensions.pixelsPerInch);
+      const rawPositionY = pixelsToInches(
+        totalHeightPixels - newY - fixtureHeightPixels,
+        dimensions.pixelsPerInch
+      );
+
+      const finalPositionX = Math.max(0, rawPositionX);
+      const finalPositionY = Math.max(0, rawPositionY);
+
+      setTempWall(prev => ({
+        ...prev,
+        fixtures: prev.fixtures.map(f =>
+          f.id === dragState.fixture.id
+            ? { ...f, positionX: finalPositionX, positionY: finalPositionY }
+            : f
+        ),
+      }));
+
+      latestDragPositionRef.current = {
+        positionX: finalPositionX,
+        positionY: finalPositionY,
+      };
+
+      // Save to API
+      setIsSaving(true);
+      setPendingUpdate({
+        fixtureId: dragState.fixture.id,
+        positionX: finalPositionX,
+        positionY: finalPositionY,
+        sourceWall: wall,
+      });
+      try {
+        const response = await fetch(`/api/fixtures/${dragState.fixture.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            positionX: finalPositionX,
+            positionY: finalPositionY,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to update fixture: ${response.status}`);
         }
-      }
 
-      setDragState(null);
+        // Ask parent to refresh data now that the server accepted the update
+        if (onFixtureUpdate) {
+          await onFixtureUpdate();
+        } else {
+          setPendingUpdate(null);
+        }
+      } catch (error) {
+        console.error('Failed to update fixture position:', error);
+        // Revert to original position on error
+        setPendingUpdate(null);
+        setTempWall(wall);
+      } finally {
+        latestDragPositionRef.current = null;
+        setDragState(null);
+        setIsSaving(false);
+      }
     }
-  }, [dragState, tempWall, wall, onFixtureUpdate]);
+  }, [dragState, tempWall, targetWidth, wall, onFixtureUpdate]);
 
   const handleMouseLeave = useCallback(() => {
     const canvas = canvasRef.current;
