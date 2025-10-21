@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateObject, type CoreMessage } from 'ai';
+import { generateText, tool, stepCountIs, type CoreMessage, type ToolCallOptions } from 'ai';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 
-// Schema for fixture validation with structured output
+// Schema for fixture parameters in tool calling
 const fixtureSchema = z.object({
   type: z.string().describe('Type of fixture (e.g., sink, mirror, light, outlet, window, cabinet)'),
   name: z.string().describe('Name or description of the fixture'),
@@ -16,18 +16,15 @@ const fixtureSchema = z.object({
   notes: z.string().optional().describe('Additional notes about the fixture'),
 });
 
-const aiResponseSchema = z.object({
-  action: z.enum(['add_fixture', 'clarify', 'error']).describe('What action to take based on the instruction'),
-  fixtures: z.array(fixtureSchema).optional().describe('Fixtures to add (only if action is add_fixture)'),
-  message: z.string().describe('Explanation or clarification message to show the user'),
-});
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { instruction: rawInstruction, wallId, messages: rawMessages } = body;
 
     const normalizedWallId = typeof wallId === 'string' ? wallId.trim() : '';
+
+    console.log('[AI Agent] Received wallId:', wallId);
+    console.log('[AI Agent] Normalized wallId:', normalizedWallId);
 
     if (!normalizedWallId) {
       return NextResponse.json(
@@ -99,7 +96,7 @@ export async function POST(request: NextRequest) {
       return handleManualParsing(instruction, normalizedWallId, wall);
     }
 
-    // Use AI to parse the instruction with structured output
+    // Use AI with proper tool calling
     const systemPrompt = `You are an AI assistant helping interior designers create wall elevations.
 
 Wall Information:
@@ -130,21 +127,48 @@ Important positioning rules:
   - Vanity lights: typically 75-80" from floor
   - Windows: vary, but often 36-48" from floor
 
-When the user provides clear instructions to add fixtures, set action to "add_fixture" and fill in the fixtures array with complete fixture data.
-If the instruction is unclear or asking a question, set action to "clarify" and provide helpful guidance in the message.`;
+When the user provides clear instructions to add fixtures, use the add_fixture tool to add them.
+If the instruction is unclear or asking a question, respond with helpful guidance.`;
 
-    const result = await generateObject({
+    const result = await generateText({
       model: anthropic('claude-3-5-sonnet-20241022'),
-      schema: aiResponseSchema,
+      tools: {
+        add_fixture: tool({
+          description: 'Add a fixture to the wall elevation. Call this tool once for each fixture to add.',
+          inputSchema: fixtureSchema,
+          execute: async (params: z.infer<typeof fixtureSchema>, options: ToolCallOptions) => {
+            console.log('[AI Agent] Creating fixture with wallId:', normalizedWallId);
+            console.log('[AI Agent] Fixture params:', params);
+            const fixture = db.createFixture({
+              type: params.type,
+              name: params.name,
+              widthInches: params.widthInches,
+              heightInches: params.heightInches,
+              positionX: params.positionX,
+              positionY: params.positionY,
+              wallId: normalizedWallId,
+              productUrl: params.productUrl,
+              notes: params.notes,
+            });
+            console.log('[AI Agent] Created fixture:', fixture);
+            return {
+              success: true,
+              fixture: fixture,
+              message: `Successfully added ${params.name} at position (${params.positionX}", ${params.positionY}")`,
+            };
+          },
+        }),
+      },
       system: systemPrompt,
       temperature: 0.3,
+      stopWhen: stepCountIs(10), // Allow up to 10 tool call steps
       ...(normalizedMessages
         ? { messages: normalizedMessages }
         : { prompt: instruction }),
     });
 
-    // Process the structured AI response
-    const response = processAIResponse(result.object, normalizedWallId);
+    // Process the tool calling response
+    const response = processToolCallingResponse(result, normalizedWallId);
 
     return NextResponse.json(response);
   } catch (error) {
@@ -156,34 +180,38 @@ If the instruction is unclear or asking a question, set action to "clarify" and 
   }
 }
 
-function processAIResponse(aiResponse: z.infer<typeof aiResponseSchema>, wallId: string) {
-  // If the AI wants to add fixtures, create them in the database
-  if (aiResponse.action === 'add_fixture' && aiResponse.fixtures && aiResponse.fixtures.length > 0) {
-    const createdFixtures = aiResponse.fixtures.map(fixtureData => {
-      return db.createFixture({
-        type: fixtureData.type,
-        name: fixtureData.name,
-        widthInches: fixtureData.widthInches,
-        heightInches: fixtureData.heightInches,
-        positionX: fixtureData.positionX,
-        positionY: fixtureData.positionY,
-        wallId,
-        productUrl: fixtureData.productUrl,
-        notes: fixtureData.notes,
-      });
-    });
+function processToolCallingResponse(result: any, wallId: string) {
+  // Check if any fixtures were added via tool calls
+  const addedFixtures: any[] = [];
 
+  console.log('[AI Agent] Processing tool calling response');
+  console.log('[AI Agent] Tool results:', result.toolResults);
+
+  if (result.toolResults && result.toolResults.length > 0) {
+    // Extract fixtures from successful tool calls
+    for (const toolResult of result.toolResults) {
+      console.log('[AI Agent] Tool result:', toolResult);
+      if (toolResult.result?.success && toolResult.result?.fixture) {
+        addedFixtures.push(toolResult.result.fixture);
+      }
+    }
+  }
+
+  console.log('[AI Agent] Added fixtures:', addedFixtures);
+
+  // If fixtures were added, return them with the AI's text response
+  if (addedFixtures.length > 0) {
     return {
       action: 'add_fixture',
-      fixtures: createdFixtures,
-      message: aiResponse.message,
+      fixtures: addedFixtures,
+      message: result.text || `Successfully added ${addedFixtures.length} fixture(s)`,
     };
   }
 
-  // Otherwise, return the clarification or error message
+  // Otherwise, return the AI's text response as a clarification
   return {
-    action: aiResponse.action,
-    message: aiResponse.message,
+    action: 'clarify',
+    message: result.text || 'I can help you add fixtures to your wall elevation. What would you like to add?',
   };
 }
 

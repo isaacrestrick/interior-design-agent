@@ -89,6 +89,7 @@ class Database {
     data: Omit<Fixture, 'id' | 'createdAt' | 'updatedAt'>,
     options: { id?: string } = {}
   ): Fixture {
+    console.log('Creating fixture:', data);
     const fixture: Fixture = {
       ...data,
       id: options.id ?? crypto.randomUUID(),
