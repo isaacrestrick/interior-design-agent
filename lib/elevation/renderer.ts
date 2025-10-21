@@ -17,6 +17,12 @@ export function inchesToPixels(inches: number, pixelsPerInch: number): number {
   return drawingInches * pixelsPerInch;
 }
 
+// Convert pixels back to inches (inverse of inchesToPixels)
+export function pixelsToInches(pixels: number, pixelsPerInch: number): number {
+  const drawingInches = pixels / pixelsPerInch;
+  return (drawingInches * 12) / SCALE_INCHES_PER_FOOT;
+}
+
 // Calculate optimal canvas dimensions for a wall
 export function calculateCanvasDimensions(
   wall: WallWithFixtures,
@@ -192,6 +198,49 @@ function drawDimensions(
   ctx.font = '12px Arial';
   ctx.textAlign = 'left';
   ctx.fillText(`Scale: 1/2" = 1'-0"`, 10, height + 20);
+}
+
+// Get the pixel position of a fixture (top-left corner)
+export function getFixturePixelPosition(
+  fixture: Fixture,
+  wallHeightFeet: number,
+  pixelsPerInch: number
+): { x: number; y: number } {
+  const x = inchesToPixels(fixture.positionX, pixelsPerInch);
+  const fixtureHeight = inchesToPixels(fixture.heightInches, pixelsPerInch);
+  const totalHeightPixels = feetToPixels(wallHeightFeet, pixelsPerInch);
+  const y = totalHeightPixels - inchesToPixels(fixture.positionY, pixelsPerInch) - fixtureHeight;
+
+  return { x, y };
+}
+
+// Hit detection: find fixture at given pixel coordinates
+export function getFixtureAtPosition(
+  wall: WallWithFixtures,
+  x: number,
+  y: number,
+  dimensions: DrawingDimensions
+): Fixture | null {
+  const { pixelsPerInch } = dimensions;
+
+  // Iterate through fixtures in reverse order (top-most drawn last, should be checked first)
+  for (let i = wall.fixtures.length - 1; i >= 0; i--) {
+    const fixture = wall.fixtures[i];
+    const pos = getFixturePixelPosition(fixture, wall.heightFeet, pixelsPerInch);
+    const width = inchesToPixels(fixture.widthInches, pixelsPerInch);
+    const height = inchesToPixels(fixture.heightInches, pixelsPerInch);
+
+    if (
+      x >= pos.x &&
+      x <= pos.x + width &&
+      y >= pos.y &&
+      y <= pos.y + height
+    ) {
+      return fixture;
+    }
+  }
+
+  return null;
 }
 
 // Export elevation as data URL (for download)

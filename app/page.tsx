@@ -98,7 +98,11 @@ export default function Home() {
                 </p>
               </div>
 
-              <ElevationCanvas wall={wall} targetWidth={800} />
+              <ElevationCanvas
+                wall={wall}
+                targetWidth={800}
+                onFixtureUpdate={handleFixturesUpdated}
+              />
             </div>
 
             {/* Fixture List */}
@@ -137,7 +141,7 @@ export default function Home() {
         {/* Instructions */}
         <div className="mt-8 bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold mb-4 text-black">How to Use</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div>
               <div className="text-3xl mb-2">1️⃣</div>
               <h3 className="font-semibold mb-2 text-black">Describe Your Design</h3>
@@ -154,6 +158,13 @@ export default function Home() {
             </div>
             <div>
               <div className="text-3xl mb-2">3️⃣</div>
+              <h3 className="font-semibold mb-2 text-black">Drag & Adjust</h3>
+              <p className="text-sm text-black">
+                Click and drag fixtures to reposition them on the grid. Changes are saved automatically.
+              </p>
+            </div>
+            <div>
+              <div className="text-3xl mb-2">4️⃣</div>
               <h3 className="font-semibold mb-2 text-black">View & Export</h3>
               <p className="text-sm text-black">
                 See your elevation update in real-time and export as PNG when ready to share with clients.
