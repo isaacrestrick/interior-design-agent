@@ -296,8 +296,8 @@ export default function ElevationCanvas({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="relative border-2 border-gray-200 rounded-2xl p-6 bg-gradient-to-br from-gray-50 to-blue-50 overflow-auto shadow-inner">
+    <div className="space-y-6 h-full flex flex-col">
+      <div className="relative border-2 border-gray-200 rounded-2xl p-6 bg-gradient-to-br from-gray-50 to-blue-50 overflow-hidden shadow-inner flex-1 flex flex-col min-h-0">
         {dragState && (
           <div className="absolute top-4 right-4 z-10 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 animate-fade-in">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -315,15 +315,17 @@ export default function ElevationCanvas({
             Saving...
           </div>
         )}
-        <canvas
-          ref={canvasRef}
-          className="mx-auto bg-white shadow-2xl rounded-lg border border-gray-300 hover:shadow-3xl transition-shadow duration-300"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
-        />
-        <div className="mt-4 text-center">
+        <div className="flex-1 flex items-center justify-center min-h-0">
+          <canvas
+            ref={canvasRef}
+            className="bg-white shadow-2xl rounded-lg border border-gray-300 hover:shadow-3xl transition-shadow duration-300 max-w-full max-h-full object-contain"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+          />
+        </div>
+        <div className="mt-4 text-center flex-shrink-0">
           <p className="text-xs text-gray-500 italic">Click and drag fixtures to reposition them on the elevation</p>
         </div>
       </div>
