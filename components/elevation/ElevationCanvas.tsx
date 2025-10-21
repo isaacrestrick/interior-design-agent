@@ -46,10 +46,12 @@ export default function ElevationCanvas({
 
   // Sync temp wall with server data once drag finishes and the updated wall arrives.
   useEffect(() => {
+    // Don't sync during active drag operations
     if (dragState) {
       return;
     }
 
+    // Handle pending updates from completed drag operations
     if (pendingUpdate) {
       if (wall !== pendingUpdate.sourceWall) {
         const incomingFixture = wall.fixtures.find(f => f.id === pendingUpdate.fixtureId);
@@ -83,10 +85,10 @@ export default function ElevationCanvas({
       return;
     }
 
-    if (!isSaving) {
-      setTempWall(wall);
-    }
-  }, [wall, dragState, isSaving, pendingUpdate]);
+    // Always sync tempWall with wall when not dragging or handling pending updates
+    // This ensures new fixtures added by AI are immediately visible
+    setTempWall(wall);
+  }, [wall, dragState, pendingUpdate]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
