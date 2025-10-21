@@ -23,6 +23,9 @@ export async function POST(request: NextRequest) {
 
     const normalizedWallId = typeof wallId === 'string' ? wallId.trim() : '';
 
+    console.log('[AI Agent] Received wallId:', wallId);
+    console.log('[AI Agent] Normalized wallId:', normalizedWallId);
+
     if (!normalizedWallId) {
       return NextResponse.json(
         { error: 'Missing wallId' },
@@ -134,6 +137,8 @@ If the instruction is unclear or asking a question, respond with helpful guidanc
           description: 'Add a fixture to the wall elevation. Call this tool once for each fixture to add.',
           inputSchema: fixtureSchema,
           execute: async (params: z.infer<typeof fixtureSchema>, options: ToolCallOptions) => {
+            console.log('[AI Agent] Creating fixture with wallId:', normalizedWallId);
+            console.log('[AI Agent] Fixture params:', params);
             const fixture = db.createFixture({
               type: params.type,
               name: params.name,
@@ -145,6 +150,7 @@ If the instruction is unclear or asking a question, respond with helpful guidanc
               productUrl: params.productUrl,
               notes: params.notes,
             });
+            console.log('[AI Agent] Created fixture:', fixture);
             return {
               success: true,
               fixture: fixture,
@@ -178,14 +184,20 @@ function processToolCallingResponse(result: any, wallId: string) {
   // Check if any fixtures were added via tool calls
   const addedFixtures: any[] = [];
 
+  console.log('[AI Agent] Processing tool calling response');
+  console.log('[AI Agent] Tool results:', result.toolResults);
+
   if (result.toolResults && result.toolResults.length > 0) {
     // Extract fixtures from successful tool calls
     for (const toolResult of result.toolResults) {
+      console.log('[AI Agent] Tool result:', toolResult);
       if (toolResult.result?.success && toolResult.result?.fixture) {
         addedFixtures.push(toolResult.result.fixture);
       }
     }
   }
+
+  console.log('[AI Agent] Added fixtures:', addedFixtures);
 
   // If fixtures were added, return them with the AI's text response
   if (addedFixtures.length > 0) {
