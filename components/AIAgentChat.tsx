@@ -33,6 +33,14 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
     },
   ]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const quickPrompts = useMemo(
+    () => [
+      'Add a 30 by 36 inch mirror at 24, 60',
+      'Swap the faucet for something slimmer',
+      'Center the vanity light over the sink',
+    ],
+    []
+  );
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -141,31 +149,61 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
     }
   };
 
+  const handleQuickPrompt = useCallback(
+    (prompt: string) => {
+      setDraft(prompt);
+      void processInstruction(prompt);
+    },
+    [processInstruction]
+  );
+
   const renderMessage = (message: ChatMessage) => {
     const isUser = message.role === 'user';
-    const alignment = isUser ? 'justify-end' : 'justify-start';
+    const bubbleColor = isUser
+      ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg'
+      : message.isError
+        ? 'bg-red-50 text-red-900 border border-red-200'
+        : 'bg-white text-gray-800 border border-gray-200';
 
     return (
-      <div key={message.id} className={`flex ${alignment}`}>
-        <div className="max-w-[85%]">
+      <div
+        key={message.id}
+        className={`flex gap-3 ${isUser ? 'flex-row-reverse text-right' : 'text-left'}`}
+      >
+        <div
+          className={`mt-1 h-8 w-8 shrink-0 rounded-full border border-white/40 ${
+            isUser ? 'bg-blue-600/80 text-white' : 'bg-slate-200 text-slate-600'
+          } flex items-center justify-center text-xs font-semibold uppercase`}
+        >
+          {isUser ? 'You' : 'AI'}
+        </div>
+        <div className="max-w-[78%] sm:max-w-[70%]">
           <div
-            className={`px-3 py-2 rounded-lg text-sm ${
-              isUser
-                ? 'bg-blue-600 text-white'
-                : message.isError
-                  ? 'bg-red-50 text-red-900 border border-red-200'
-                  : 'bg-white text-gray-800 border border-gray-200'
-            }`}
+            className={`rounded-2xl px-4 py-3 text-sm leading-relaxed transition-colors ${bubbleColor}`}
           >
-            <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>
+            <p className="whitespace-pre-wrap">{message.content}</p>
             {message.fixtures && message.fixtures.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-white/20 space-y-1">
-                {message.fixtures.map((fixture) => (
-                  <div key={fixture.id} className="text-xs opacity-90">
+              <div
+                className={`mt-3 space-y-2 rounded-xl border ${
+                  isUser ? 'border-white/30 bg-white/10' : 'border-gray-200 bg-gray-50'
+                } p-3 text-xs`}
+              >
+                <p
+                  className={`font-semibold ${
+                    isUser ? 'text-white/80' : 'text-gray-700'
+                  }`}
+                >
+                  Fixtures suggested
+                </p>
+                {message.fixtures.map(fixture => (
+                  <div
+                    key={fixture.id}
+                    className={`${isUser ? 'text-white/80' : 'text-gray-600'}`}
+                  >
                     <span className="font-medium">{fixture.name}</span>
-                    {' - '}
+                    {' • '}
                     <span>{fixture.widthInches}&quot; × {fixture.heightInches}&quot;</span>
-                    {' at '}
+                    {' @ '}
                     <span>({fixture.positionX.toFixed(0)}&quot;, {fixture.positionY.toFixed(0)}&quot;)</span>
                   </div>
                 ))}
@@ -178,61 +216,86 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
   };
 
   return (
-    <div className="space-y-4">
-      <div className="border-b border-gray-200 pb-3">
-        <h3 className="text-lg font-semibold text-gray-900">AI Assistant</h3>
-        <p className="text-sm text-gray-600 mt-1">
-          Describe fixtures to add with dimensions and positions
-        </p>
-      </div>
-
-      <div
-        ref={scrollContainerRef}
-        className="h-80 overflow-y-auto space-y-3 rounded-lg p-3 bg-gray-50 border border-gray-200"
-        style={{ scrollbarWidth: 'thin' }}
-      >
-        {messages.map(renderMessage)}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm text-gray-600">
-              Thinking...
+    <div className="flex flex-col h-full">
+      <div className="flex h-full min-h-[30rem] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
+        <div className="relative border-b border-slate-200 bg-gradient-to-r from-slate-900 via-blue-900 to-blue-600 px-6 py-5 text-white">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-xl font-semibold tracking-tight">AI Design Companion</h3>
+              <p className="text-sm text-blue-100">
+                Describe fixtures with measurements and placement &mdash; I will update the wall for you.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-blue-100/80">
+              <span className="flex h-2 w-2 animate-pulse rounded-full bg-emerald-300"></span>
+              Ready to help
             </div>
           </div>
-        )}
-      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <textarea
-          id="instruction"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Add a 24 by 8 inch sink at 30, 36"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[80px] text-sm text-gray-900 placeholder:text-gray-400"
-          disabled={loading}
-        />
-
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <p className="text-xs text-gray-500">
-            Press ⌘ + Enter (Ctrl + Enter on Windows) to send
-          </p>
-          <button
-            type="submit"
-            disabled={loading || !draft.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm font-medium"
-          >
-            {loading ? 'Processing...' : 'Send'}
-          </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {quickPrompts.map(prompt => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => handleQuickPrompt(prompt)}
+                className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white transition hover:border-white/40 hover:bg-white/20"
+                disabled={loading}
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
         </div>
-      </form>
 
-      <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-        <p className="font-semibold text-xs text-gray-700 mb-2">Examples:</p>
-        <ul className="space-y-1 text-xs text-gray-600">
-          <li>• Add a 24 by 8 inch sink at 30, 36</li>
-          <li>• Place a 30 by 36 inch mirror at 27, 48</li>
-          <li>• Add a 24 by 6 inch light at 24, 78</li>
-        </ul>
+        <div className="flex flex-1 flex-col">
+          <div className="relative flex-1 overflow-hidden">
+            <div className="absolute inset-0 bg-slate-50" aria-hidden />
+            <div className="relative h-full overflow-y-auto px-6 py-6 space-y-5" ref={scrollContainerRef} style={{ scrollbarWidth: 'thin' }}>
+              {messages.map(renderMessage)}
+              {loading && (
+                <div className="flex items-center gap-3 text-sm text-slate-500">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-500">
+                    AI
+                  </span>
+                  <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2">
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-slate-300 [animation-delay:120ms]" />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-slate-200 [animation-delay:240ms]" />
+                    <span className="text-xs font-medium text-slate-500">Thinking...</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="border-t border-slate-200 bg-white px-6 py-4">
+            <label htmlFor="instruction" className="sr-only">
+              Send a message to the AI assistant
+            </label>
+            <div className="relative">
+              <textarea
+                id="instruction"
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Describe the fixture you want to add with measurements and placement"
+                className="min-h-[80px] w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 pr-12 text-sm text-slate-900 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-70"
+                disabled={loading}
+              />
+              <button
+                type="submit"
+                disabled={loading || !draft.trim()}
+                className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+                aria-label="Send message"
+              >
+                <span className="text-base">➤</span>
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-slate-500">
+              Share dimensions, placement, or adjustments and I'll figure it out.
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   );
