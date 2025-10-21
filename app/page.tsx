@@ -34,7 +34,9 @@ export default function Home() {
 
   const loadWall = async (id: string) => {
     try {
-      const response = await fetch(`/api/walls/${id}`);
+      const response = await fetch(`/api/walls/${id}`, {
+        cache: 'no-store',
+      });
       if (response.ok) {
         const data = await response.json();
         setWall(data);

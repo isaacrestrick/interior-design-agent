@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateObject } from 'ai';
+import { generateObject, type CoreMessage } from 'ai';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 
@@ -25,17 +25,66 @@ const aiResponseSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { instruction, wallId } = body;
+    const { instruction: rawInstruction, wallId, messages: rawMessages } = body;
 
-    if (!instruction || !wallId) {
+    const normalizedWallId = typeof wallId === 'string' ? wallId.trim() : '';
+
+    if (!normalizedWallId) {
       return NextResponse.json(
-        { error: 'Missing instruction or wallId' },
+        { error: 'Missing wallId' },
+        { status: 400 }
+      );
+    }
+
+    const incomingMessages =
+      Array.isArray(rawMessages) && rawMessages.length > 0
+        ? rawMessages.filter(
+            (message: unknown): message is { role: 'user' | 'assistant'; content: string } => {
+              if (typeof message !== 'object' || message === null) {
+                return false;
+              }
+              const { role, content } = message as { role?: unknown; content?: unknown };
+              return (role === 'user' || role === 'assistant') && typeof content === 'string';
+            }
+          )
+        : undefined;
+
+    let normalizedMessages: CoreMessage[] | undefined = incomingMessages?.map((message) => ({
+      role: message.role,
+      content: [{ type: 'text', text: message.content.trim() }],
+    }));
+
+    if (normalizedMessages && normalizedMessages.length > 0) {
+      const firstUserIndex = normalizedMessages.findIndex((message) => message.role === 'user');
+      if (firstUserIndex === -1) {
+        // No user messages found. Fall back to prompt-only mode so the model receives the latest instruction.
+        normalizedMessages = undefined;
+      } else if (firstUserIndex > 0) {
+        normalizedMessages = normalizedMessages.slice(firstUserIndex);
+      }
+    }
+
+    let instruction = typeof rawInstruction === 'string' ? rawInstruction.trim() : '';
+
+    if (!instruction && incomingMessages) {
+      for (let i = incomingMessages.length - 1; i >= 0; i -= 1) {
+        const message = incomingMessages[i];
+        if (message.role === 'user' && message.content.trim().length > 0) {
+          instruction = message.content.trim();
+          break;
+        }
+      }
+    }
+
+    if (!instruction) {
+      return NextResponse.json(
+        { error: 'Missing instruction' },
         { status: 400 }
       );
     }
 
     // Get wall information
-    const wall = db.getWallWithFixtures(wallId);
+    const wall = db.getWallWithFixtures(normalizedWallId);
     if (!wall) {
       return NextResponse.json(
         { error: 'Wall not found' },
@@ -47,7 +96,7 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey || apiKey === 'your-api-key-here') {
       // Fallback: parse instruction manually without AI
-      return handleManualParsing(instruction, wallId, wall);
+      return handleManualParsing(instruction, normalizedWallId, wall);
     }
 
     // Use AI to parse the instruction with structured output
@@ -88,12 +137,14 @@ If the instruction is unclear or asking a question, set action to "clarify" and 
       model: anthropic('claude-3-5-sonnet-20241022'),
       schema: aiResponseSchema,
       system: systemPrompt,
-      prompt: instruction,
       temperature: 0.3,
+      ...(normalizedMessages
+        ? { messages: normalizedMessages }
+        : { prompt: instruction }),
     });
 
     // Process the structured AI response
-    const response = processAIResponse(result.object, wallId);
+    const response = processAIResponse(result.object, normalizedWallId);
 
     return NextResponse.json(response);
   } catch (error) {
