@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, tool, stepCountIs, type CoreMessage, type ToolCallOptions } from 'ai';
+import { generateText, tool, stepCountIs, type CoreMessage, type GenerateTextResult } from 'ai';
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import type { Fixture } from '@/types';
 
 // Schema for fixture parameters in tool calling
 const fixtureSchema = z.object({
@@ -136,7 +137,7 @@ If the instruction is unclear or asking a question, respond with helpful guidanc
         add_fixture: tool({
           description: 'Add a fixture to the wall elevation. Call this tool once for each fixture to add.',
           inputSchema: fixtureSchema,
-          execute: async (params: z.infer<typeof fixtureSchema>, options: ToolCallOptions) => {
+          execute: async (params: z.infer<typeof fixtureSchema>) => {
             console.log('[AI Agent] Creating fixture with wallId:', normalizedWallId);
             console.log('[AI Agent] Fixture params:', params);
             const fixture = db.createFixture({
@@ -180,9 +181,10 @@ If the instruction is unclear or asking a question, respond with helpful guidanc
   }
 }
 
-function processToolCallingResponse(result: any, wallId: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function processToolCallingResponse(result: any, _wallId: string) {
   // Check if any fixtures were added via tool calls
-  const addedFixtures: any[] = [];
+  const addedFixtures: Fixture[] = [];
 
   console.log('[AI Agent] Processing tool calling response');
   console.log('[AI Agent] Tool results:', result.toolResults);
