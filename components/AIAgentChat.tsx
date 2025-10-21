@@ -268,41 +268,32 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="border-t border-slate-200 bg-white/80 px-6 py-5 backdrop-blur">
+          <form onSubmit={handleSubmit} className="border-t border-slate-200 bg-white px-6 py-4">
             <label htmlFor="instruction" className="sr-only">
               Send a message to the AI assistant
             </label>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="relative flex-1">
-                <textarea
-                  id="instruction"
-                  value={draft}
-                  onChange={e => setDraft(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Describe the fixture you want to add with measurements and placement"
-                  className="min-h-[96px] w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-inner transition focus:border-blue-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-70"
-                  disabled={loading}
-                />
-                <div className="pointer-events-none absolute bottom-3 right-4 text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                  ⌘⏎ to send
-                </div>
-              </div>
-              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-                <button
-                  type="submit"
-                  disabled={loading || !draft.trim()}
-                  className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-slate-300"
-                >
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-base transition group-hover:bg-white/30">
-                    ➤
-                  </span>
-                  {loading ? 'Sending...' : 'Send Message'}
-                </button>
-                <p className="text-xs text-slate-500 sm:w-40">
-                  Share dimensions, placement, or adjustments and I’ll figure it out.
-                </p>
-              </div>
+            <div className="relative">
+              <textarea
+                id="instruction"
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Describe the fixture you want to add with measurements and placement"
+                className="min-h-[80px] w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 pr-12 text-sm text-slate-900 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:opacity-70"
+                disabled={loading}
+              />
+              <button
+                type="submit"
+                disabled={loading || !draft.trim()}
+                className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"
+                aria-label="Send message"
+              >
+                <span className="text-base">➤</span>
+              </button>
             </div>
+            <p className="mt-2 text-xs text-slate-500">
+              Share dimensions, placement, or adjustments and I'll figure it out.
+            </p>
           </form>
         </div>
       </div>
