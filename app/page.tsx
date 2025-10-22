@@ -12,7 +12,6 @@ export default function Home() {
   const [wall, setWall] = useState<WallWithFixtures | null>(null);
   const [wallId, setWallId] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const pendingFixturesRef = useRef<Fixture[]>([]);
   const wallRequestIdRef = useRef(0);
 
   const loadWall = async (id: string) => {
@@ -28,31 +27,7 @@ export default function Home() {
           return;
         }
 
-        setWall(prev => {
-          const pending = pendingFixturesRef.current;
-
-          if (!pending || pending.length === 0) {
-            return data;
-          }
-
-          const pendingById = new Map(pending.map(fixture => [fixture.id, fixture]));
-
-          data.fixtures.forEach((fixture: Fixture) => {
-            pendingById.delete(fixture.id);
-          });
-
-          const stillPending = Array.from(pendingById.values());
-          pendingFixturesRef.current = stillPending;
-
-          if (stillPending.length === 0) {
-            return data;
-          }
-
-          return {
-            ...data,
-            fixtures: [...data.fixtures, ...stillPending],
-          };
-        });
+        setWall(data);
       }
     } catch (error) {
       console.error('Error loading wall:', error);
@@ -83,33 +58,28 @@ export default function Home() {
     initializeWall();
   }, []);
 
-  const handleFixturesUpdated = (newFixtures?: Fixture[]) => {
-    setWall(prev => {
-      if (!prev || !newFixtures || newFixtures.length === 0) {
-        return prev;
-      }
+  const handleFixturesUpdated = async (updatedFixtures?: Fixture[]) => {
+    if (updatedFixtures && updatedFixtures.length > 0) {
+      setWall(prev => {
+        if (!prev) {
+          return prev;
+        }
 
-      const existingIds = new Set(prev.fixtures.map(fixture => fixture.id));
-      const additions = newFixtures.filter(fixture => !existingIds.has(fixture.id));
+        const fixturesById = new Map(prev.fixtures.map(fixture => [fixture.id, fixture]));
 
-      if (additions.length === 0) {
-        return prev;
-      }
+        updatedFixtures.forEach(fixture => {
+          fixturesById.set(fixture.id, fixture);
+        });
 
-      const pendingById = new Map(pendingFixturesRef.current.map(fixture => [fixture.id, fixture]));
-      additions.forEach(fixture => {
-        pendingById.set(fixture.id, fixture);
+        return {
+          ...prev,
+          fixtures: Array.from(fixturesById.values()),
+        };
       });
-      pendingFixturesRef.current = Array.from(pendingById.values());
-
-      return {
-        ...prev,
-        fixtures: [...prev.fixtures, ...additions],
-      };
-    });
+    }
 
     if (wallId) {
-      loadWall(wallId);
+      await loadWall(wallId);
     }
   };
 

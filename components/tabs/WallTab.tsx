@@ -7,7 +7,7 @@ interface WallTabProps {
   wall: WallWithFixtures;
   canvasWidth: number;
   canvasContainerRef: Ref<HTMLDivElement>;
-  onFixturesUpdated: (fixtures?: Fixture[]) => void;
+  onFixturesUpdated: (fixtures?: Fixture[]) => Promise<void> | void;
 }
 
 export default function WallTab({ wall, canvasWidth, canvasContainerRef, onFixturesUpdated }: WallTabProps) {
@@ -27,4 +27,3 @@ export default function WallTab({ wall, canvasWidth, canvasContainerRef, onFixtu
     </div>
   );
 }
-

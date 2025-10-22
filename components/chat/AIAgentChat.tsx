@@ -5,7 +5,7 @@ import type { Fixture } from '@/types';
 
 interface AIAgentChatProps {
   wallId: string;
-  onFixturesUpdated: (fixtures?: Fixture[]) => void;
+  onFixturesUpdated: (fixtures?: Fixture[]) => Promise<void> | void;
 }
 
 type ChatRole = 'user' | 'assistant';

@@ -12,7 +12,7 @@ const MAX_CANVAS_WIDTH = 720;
 
 interface ContentPanelProps {
   wall: WallWithFixtures;
-  onFixturesUpdated: (newFixtures?: Fixture[]) => void;
+  onFixturesUpdated: (newFixtures?: Fixture[]) => Promise<void> | void;
   onDeleteFixture: (id: string) => void;
 }
 
