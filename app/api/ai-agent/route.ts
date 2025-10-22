@@ -182,6 +182,18 @@ If the instruction is unclear or asking a question, respond with helpful guidanc
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isFixtureToolOutput(value: unknown): value is { success: boolean; fixture: Fixture } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'success' in value &&
+    Boolean((value as { success?: boolean }).success) &&
+    'fixture' in value &&
+    typeof (value as { fixture?: unknown }).fixture === 'object' &&
+    (value as { fixture?: unknown }).fixture !== null
+  );
+}
+
 function processToolCallingResponse(result: any, _wallId: string) {
   // Check if any fixtures were added via tool calls
   const addedFixtures: Fixture[] = [];
@@ -193,8 +205,9 @@ function processToolCallingResponse(result: any, _wallId: string) {
     // Extract fixtures from successful tool calls
     for (const toolResult of result.toolResults) {
       console.log('[AI Agent] Tool result:', toolResult);
-      if (toolResult.result?.success && toolResult.result?.fixture) {
-        addedFixtures.push(toolResult.result.fixture);
+      const output = toolResult.output;
+      if (isFixtureToolOutput(output)) {
+        addedFixtures.push(output.fixture);
       }
     }
   }
