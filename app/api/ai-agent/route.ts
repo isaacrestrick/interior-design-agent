@@ -132,7 +132,7 @@ When the user provides clear instructions to add fixtures, use the add_fixture t
 If the instruction is unclear or asking a question, respond with helpful guidance.`;
 
     const result = await generateText({
-      model: anthropic('claude-3-5-sonnet-20241022'),
+      model: anthropic('claude-haiku-4-5-20251001'),
       tools: {
         add_fixture: tool({
           description: 'Add a fixture to the wall elevation. Call this tool once for each fixture to add.',
