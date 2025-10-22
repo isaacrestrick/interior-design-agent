@@ -242,8 +242,8 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col">
-          <div className="relative flex-1 overflow-hidden">
+        <div className="flex flex-1 flex-col min-h-0">
+          <div className="relative flex-1 overflow-hidden min-h-0">
             <div className="absolute inset-0 bg-slate-50" aria-hidden />
             <div className="relative h-full overflow-y-auto px-6 py-6 space-y-5" ref={scrollContainerRef} style={{ scrollbarWidth: 'thin' }}>
               {messages.map(renderMessage)}
@@ -287,7 +287,7 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
               </button>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Share dimensions, placement, or adjustments and I'll figure it out.
+              Share dimensions, placement, or adjustments and I&apos;ll figure it out.
             </p>
           </form>
         </div>
