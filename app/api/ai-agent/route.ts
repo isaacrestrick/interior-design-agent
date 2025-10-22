@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, tool, stepCountIs, type CoreMessage, type GenerateTextResult } from 'ai';
+import { generateText, tool, stepCountIs, type CoreMessage } from 'ai';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import type { Fixture } from '@/types';
@@ -169,7 +169,7 @@ If the instruction is unclear or asking a question, respond with helpful guidanc
     });
 
     // Process the tool calling response
-    const response = processToolCallingResponse(result, normalizedWallId);
+    const response = processToolCallingResponse(result);
 
     return NextResponse.json(response);
   } catch (error) {
@@ -182,19 +182,44 @@ If the instruction is unclear or asking a question, respond with helpful guidanc
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function processToolCallingResponse(result: any, _wallId: string) {
+function processToolCallingResponse(result: any) {
   // Check if any fixtures were added via tool calls
   const addedFixtures: Fixture[] = [];
 
   console.log('[AI Agent] Processing tool calling response');
   console.log('[AI Agent] Tool results:', result.toolResults);
 
-  if (result.toolResults && result.toolResults.length > 0) {
+  const allToolResults: unknown[] = [];
+
+  if (Array.isArray(result.toolResults) && result.toolResults.length > 0) {
+    allToolResults.push(...result.toolResults);
+  }
+
+  if (Array.isArray(result.steps) && result.steps.length > 0) {
+    for (const step of result.steps) {
+      if (Array.isArray(step.toolResults) && step.toolResults.length > 0) {
+        allToolResults.push(...step.toolResults);
+      }
+    }
+  }
+
+  if (allToolResults.length > 0) {
     // Extract fixtures from successful tool calls
-    for (const toolResult of result.toolResults) {
+    const seenFixtureIds = new Set<string>();
+    for (const toolResult of allToolResults) {
       console.log('[AI Agent] Tool result:', toolResult);
-      if (toolResult.result?.success && toolResult.result?.fixture) {
-        addedFixtures.push(toolResult.result.fixture);
+      if (
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (toolResult as any)?.result?.success &&
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (toolResult as any)?.result?.fixture
+      ) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fixture = (toolResult as any).result.fixture as Fixture;
+        if (!seenFixtureIds.has(fixture.id)) {
+          seenFixtureIds.add(fixture.id);
+          addedFixtures.push(fixture);
+        }
       }
     }
   }
