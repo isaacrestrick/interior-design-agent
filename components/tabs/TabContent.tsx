@@ -13,7 +13,7 @@ interface TabContentProps {
   wall: WallWithFixtures;
   canvasWidth: number;
   canvasContainerRef: Ref<HTMLDivElement>;
-  onFixturesUpdated: (newFixtures?: Fixture[]) => void;
+  onFixturesUpdated: (newFixtures?: Fixture[]) => Promise<void> | void;
   onDeleteFixture: (id: string) => void;
 }
 

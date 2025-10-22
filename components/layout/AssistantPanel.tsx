@@ -5,7 +5,7 @@ import { Fixture } from '@/types';
 
 interface AssistantPanelProps {
   wallId: string;
-  onFixturesUpdated: (newFixtures?: Fixture[]) => void;
+  onFixturesUpdated: (newFixtures?: Fixture[]) => Promise<void> | void;
 }
 
 export default function AssistantPanel({
