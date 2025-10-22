@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, tool, stepCountIs, type CoreMessage, type GenerateTextResult } from 'ai';
+import { generateText, tool, stepCountIs, type CoreMessage } from 'ai';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import type { Fixture } from '@/types';
@@ -169,7 +169,7 @@ If the instruction is unclear or asking a question, respond with helpful guidanc
     });
 
     // Process the tool calling response
-    const response = processToolCallingResponse(result, normalizedWallId);
+    const response = processToolCallingResponse(result);
 
     return NextResponse.json(response);
   } catch (error) {
@@ -182,19 +182,33 @@ If the instruction is unclear or asking a question, respond with helpful guidanc
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function processToolCallingResponse(result: any, _wallId: string) {
+function processToolCallingResponse(result: any) {
   // Check if any fixtures were added via tool calls
   const addedFixtures: Fixture[] = [];
 
   console.log('[AI Agent] Processing tool calling response');
   console.log('[AI Agent] Tool results:', result.toolResults);
 
+  const toolMessages: string[] = [];
+
   if (result.toolResults && result.toolResults.length > 0) {
     // Extract fixtures from successful tool calls
     for (const toolResult of result.toolResults) {
       console.log('[AI Agent] Tool result:', toolResult);
-      if (toolResult.result?.success && toolResult.result?.fixture) {
-        addedFixtures.push(toolResult.result.fixture);
+
+      if (toolResult.type !== 'tool-result') {
+        continue;
+      }
+
+      const output = toolResult.output as
+        | { success?: boolean; fixture?: Fixture; message?: string }
+        | undefined;
+
+      if (output?.success && output.fixture) {
+        addedFixtures.push(output.fixture);
+        if (output.message) {
+          toolMessages.push(output.message);
+        }
       }
     }
   }
@@ -203,10 +217,15 @@ function processToolCallingResponse(result: any, _wallId: string) {
 
   // If fixtures were added, return them with the AI's text response
   if (addedFixtures.length > 0) {
+    const messageFromTools = toolMessages.join('\n');
+    const assistantMessage = result.text?.trim()
+      || (messageFromTools.length > 0 ? messageFromTools : undefined)
+      || `Successfully added ${addedFixtures.length} fixture(s)`;
+
     return {
       action: 'add_fixture',
       fixtures: addedFixtures,
-      message: result.text || `Successfully added ${addedFixtures.length} fixture(s)`,
+      message: assistantMessage,
     };
   }
 
