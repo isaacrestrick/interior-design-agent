@@ -59,25 +59,6 @@ export default function Home() {
   }, []);
 
   const handleFixturesUpdated = async (updatedFixtures?: Fixture[]) => {
-    if (updatedFixtures && updatedFixtures.length > 0) {
-      setWall(prev => {
-        if (!prev) {
-          return prev;
-        }
-
-        const fixturesById = new Map(prev.fixtures.map(fixture => [fixture.id, fixture]));
-
-        updatedFixtures.forEach(fixture => {
-          fixturesById.set(fixture.id, fixture);
-        });
-
-        return {
-          ...prev,
-          fixtures: Array.from(fixturesById.values()),
-        };
-      });
-    }
-
     if (wallId) {
       await loadWall(wallId);
     }

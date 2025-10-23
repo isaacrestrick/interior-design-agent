@@ -287,7 +287,7 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
               </button>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Share dimensions, placement, or adjustments and I'll figure it out.
+              Share dimensions, placement, or adjustments and I&apos;ll figure it out.
             </p>
           </form>
         </div>

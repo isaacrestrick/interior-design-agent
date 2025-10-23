@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText, tool, stepCountIs, type CoreMessage, type GenerateTextResult } from 'ai';
+import { generateText, tool, stepCountIs, type CoreMessage } from 'ai';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import type { Fixture } from '@/types';
@@ -169,7 +169,7 @@ If the instruction is unclear or asking a question, respond with helpful guidanc
     });
 
     // Process the tool calling response
-    const response = processToolCallingResponse(result, normalizedWallId);
+    const response = processToolCallingResponse(result);
 
     return NextResponse.json(response);
   } catch (error) {
@@ -182,19 +182,46 @@ If the instruction is unclear or asking a question, respond with helpful guidanc
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function processToolCallingResponse(result: any, _wallId: string) {
+function processToolCallingResponse(result: any) {
   // Check if any fixtures were added via tool calls
   const addedFixtures: Fixture[] = [];
 
   console.log('[AI Agent] Processing tool calling response');
   console.log('[AI Agent] Tool results:', result.toolResults);
 
-  if (result.toolResults && result.toolResults.length > 0) {
+  const toolResults = Array.isArray(result.toolResults)
+    ? result.toolResults
+    : Array.isArray(result.steps)
+      ? result.steps.flatMap((step: unknown) => {
+          if (
+            step &&
+            typeof step === 'object' &&
+            Array.isArray((step as { toolResults?: unknown }).toolResults)
+          ) {
+            return (step as { toolResults: unknown[] }).toolResults;
+          }
+          return [];
+        })
+      : [];
+
+  if (toolResults.length > 0) {
     // Extract fixtures from successful tool calls
-    for (const toolResult of result.toolResults) {
+    for (const toolResult of toolResults) {
       console.log('[AI Agent] Tool result:', toolResult);
-      if (toolResult.result?.success && toolResult.result?.fixture) {
-        addedFixtures.push(toolResult.result.fixture);
+      const output =
+        toolResult && typeof toolResult === 'object'
+          ? (toolResult as { output?: unknown }).output
+          : undefined;
+
+      if (output && typeof output === 'object') {
+        const { success, fixture } = output as {
+          success?: unknown;
+          fixture?: unknown;
+        };
+
+        if (success === true && fixture) {
+          addedFixtures.push(fixture as Fixture);
+        }
       }
     }
   }

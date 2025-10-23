@@ -91,7 +91,7 @@ export default function AIAgentChat({ wallId, onFixturesUpdated }: AIAgentChatPr
         const shouldRefresh = data.action === 'add_fixture' || data.action === 'update_fixture';
 
         if (shouldRefresh) {
-          onFixturesUpdated(fixturesAdded > 0 ? data.fixtures : undefined);
+          await onFixturesUpdated(fixturesAdded > 0 ? data.fixtures : undefined);
         }
         const assistantMessage: ChatMessage = {
           id: makeMessageId(),
