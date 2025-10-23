@@ -19,6 +19,7 @@ export default function WallTab({ wall, canvasWidth, canvasContainerRef, onFixtu
         className="flex-1 flex items-center justify-center min-h-0 overflow-hidden"
       >
         <ElevationCanvas
+          key={wall.fixtures.length}
           wall={wall}
           targetWidth={canvasWidth}
           onFixtureUpdate={onFixturesUpdated}
