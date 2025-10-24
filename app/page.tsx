@@ -46,12 +46,6 @@ export default function Home() {
       await loadWall(wallId);
     }
   };
-
-  /*const handleDeleteFixture = (id: string) => {
-    fetch(`/api/fixtures/${id}`, { method: 'DELETE' })
-      .then(() => handleFixturesUpdated());
-  };*/
-
   if (loading) return <LoadingState />;
   if (!wall) return <ErrorState />;
   else return (
