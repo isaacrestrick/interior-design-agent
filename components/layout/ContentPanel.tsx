@@ -13,13 +13,11 @@ const MAX_CANVAS_WIDTH = 720;
 interface ContentPanelProps {
   wall: WallWithFixtures;
   onFixturesUpdated: (newFixtures?: Fixture[]) => Promise<void> | void;
-  onDeleteFixture: (id: string) => void;
 }
 
 export default function ContentPanel({
   wall,
   onFixturesUpdated,
-  onDeleteFixture,
 }: ContentPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>('wall');
   const [canvasWidth, setCanvasWidth] = useState<number>(600);
@@ -80,7 +78,6 @@ export default function ContentPanel({
         canvasWidth={canvasWidth}
         canvasContainerRef={canvasContainerRef}
         onFixturesUpdated={onFixturesUpdated}
-        onDeleteFixture={onDeleteFixture}
       />
     </div>
   );
