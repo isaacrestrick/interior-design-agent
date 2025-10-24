@@ -10,7 +10,7 @@ import { Fixture, WallWithFixtures } from '@/types';
 
 export default function Home() {
   const [wall, setWall] = useState<WallWithFixtures | null>(null);
-  const [wallId, setWallId] = useState<string>('');
+  const [wallId, setWallId] = useState<string>('wall-sample');
   const [loading, setLoading] = useState(true);
   const wallRequestIdRef = useRef(0);
 
@@ -38,25 +38,8 @@ export default function Home() {
     }
   };
 
-  useEffect(() => {
-    const initializeWall = async () => {
-      try {
-        const response = await fetch('/api/sample-wall');
-        if (response.ok) {
-          const { wallId: id } = await response.json();
-          setWallId(id);
-          loadWall(id);
-        } else {
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error fetching sample wall ID:', error);
-        setLoading(false);
-      }
-    };
-
-    initializeWall();
-  }, []);
+  // load the wall when the wallId changes
+  useEffect(() => { loadWall(wallId); }, [wallId]);
 
   const handleFixturesUpdated = async (updatedFixtures?: Fixture[]) => {
     if (wallId) {
@@ -64,38 +47,22 @@ export default function Home() {
     }
   };
 
-  const handleDeleteFixture = (id: string) => {
+  /*const handleDeleteFixture = (id: string) => {
     fetch(`/api/fixtures/${id}`, { method: 'DELETE' })
       .then(() => handleFixturesUpdated());
-  };
+  };*/
 
-  if (loading) {
-    return <LoadingState />;
-  }
-
-  if (!wall) {
-    return <ErrorState />;
-  }
-
-
-  return (
+  if (loading) return <LoadingState />;
+  if (!wall) return <ErrorState />;
+  else return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header />
-
       <main className="flex-1 overflow-hidden">
         <div className="h-full grid grid-cols-1 lg:grid-cols-3 gap-4 p-4">
-          <ContentPanel
-            wall={wall}
-            onFixturesUpdated={handleFixturesUpdated}
-            onDeleteFixture={handleDeleteFixture}
-          />
-
-          <AssistantPanel
-            wallId={wallId}
-            onFixturesUpdated={handleFixturesUpdated}
-          />
+          <ContentPanel wall={wall} onFixturesUpdated={handleFixturesUpdated} />
+          <AssistantPanel wallId={wallId} onFixturesUpdated={handleFixturesUpdated} />
         </div>
       </main>
     </div>
-  );
+  )
 }

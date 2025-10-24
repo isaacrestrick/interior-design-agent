@@ -14,7 +14,6 @@ interface TabContentProps {
   canvasWidth: number;
   canvasContainerRef: Ref<HTMLDivElement>;
   onFixturesUpdated: (newFixtures?: Fixture[]) => Promise<void> | void;
-  onDeleteFixture: (id: string) => void;
 }
 
 export default function TabContent({
@@ -23,7 +22,6 @@ export default function TabContent({
   canvasWidth,
   canvasContainerRef,
   onFixturesUpdated,
-  onDeleteFixture,
 }: TabContentProps) {
   return (
     <div className="flex-1 overflow-hidden flex flex-col p-4">
@@ -39,7 +37,6 @@ export default function TabContent({
       {activeTab === 'fixtures' && (
         <FixturesTab
           fixtures={wall.fixtures}
-          onDelete={onDeleteFixture}
         />
       )}
 
