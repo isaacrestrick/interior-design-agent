@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import TabNavigation from '@/components/tabs/TabNavigation';
-import TabContent from '@/components/tabs/TabContent';
+import WallTab from '@/components/tabs/WallTab';
+import FixturesTab from '@/components/tabs/FixturesTab';
+import GuideTab from '@/components/tabs/GuideTab';
 import { Fixture, WallWithFixtures } from '@/types';
 
 type Tab = 'wall' | 'fixtures' | 'guide';
@@ -72,13 +74,24 @@ export default function ContentPanel({
     <div className="lg:col-span-2 flex flex-col bg-white rounded-lg border border-gray-200 overflow-hidden">
       <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <TabContent
-        activeTab={activeTab}
-        wall={wall}
-        canvasWidth={canvasWidth}
-        canvasContainerRef={canvasContainerRef}
-        onFixturesUpdated={onFixturesUpdated}
-      />
+      <div className="flex-1 overflow-hidden flex flex-col p-4">
+        {activeTab === 'wall' && (
+          <WallTab
+            wall={wall}
+            canvasWidth={canvasWidth}
+            canvasContainerRef={canvasContainerRef}
+            onFixturesUpdated={onFixturesUpdated}
+          />
+        )}
+
+        {activeTab === 'fixtures' && (
+          <FixturesTab fixtures={wall.fixtures} />
+        )}
+
+        {activeTab === 'guide' && (
+          <GuideTab wall={wall} />
+        )}
+      </div>
     </div>
   );
 }

@@ -1,57 +1,9 @@
-import { Client, Room, Wall, Fixture, WallWithFixtures } from '@/types';
+import { Wall, Fixture, WallWithFixtures } from '@/types';
 
-// Simple in-memory database (replace with Prisma later)
+// Simple in-memory database for demo
 class Database {
-  private clients: Map<string, Client> = new Map();
-  private rooms: Map<string, Room> = new Map();
   private walls: Map<string, Wall> = new Map();
   private fixtures: Map<string, Fixture> = new Map();
-
-  // Client operations
-  createClient(
-    data: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>,
-    options: { id?: string } = {}
-  ): Client {
-    const client: Client = {
-      ...data,
-      id: options.id ?? crypto.randomUUID(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.clients.set(client.id, client);
-    return client;
-  }
-
-  getClient(id: string): Client | undefined {
-    return this.clients.get(id);
-  }
-
-  getAllClients(): Client[] {
-    return Array.from(this.clients.values());
-  }
-
-  // Room operations
-  createRoom(
-    data: Omit<Room, 'id' | 'createdAt' | 'updatedAt'>,
-    options: { id?: string } = {}
-  ): Room {
-    const room: Room = {
-      ...data,
-      id: options.id ?? crypto.randomUUID(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.rooms.set(room.id, room);
-    return room;
-  }
-
-  getRoom(id: string): Room | undefined {
-    return this.rooms.get(id);
-  }
-
-  getRoomsByClient(clientId: string): Room[] {
-    return Array.from(this.rooms.values()).filter(r => r.clientId === clientId);
-  }
 
   // Wall operations
   createWall(
@@ -70,10 +22,6 @@ class Database {
 
   getWall(id: string): Wall | undefined {
     return this.walls.get(id);
-  }
-
-  getWallsByRoom(roomId: string): Wall[] {
-    return Array.from(this.walls.values()).filter(w => w.roomId === roomId);
   }
 
   getWallWithFixtures(id: string): WallWithFixtures | undefined {
@@ -131,8 +79,6 @@ export const db = new Database();
 
 // Initialize with sample data
 function initializeSampleData() {
-  const SAMPLE_CLIENT_ID = "client-sample";
-  const SAMPLE_ROOM_ID = "room-sample";
   const SAMPLE_WALL_ID = "wall-sample";
   const SAMPLE_FIXTURE_IDS = {
     sink: "fixture-sink",
@@ -141,30 +87,11 @@ function initializeSampleData() {
     outlet: "fixture-outlet",
   } as const;
 
-  const client = db.createClient(
-    {
-      name: "Sample Client",
-      email: "client@example.com",
-      phone: "555-0123",
-    },
-    { id: SAMPLE_CLIENT_ID }
-  );
-
-  const room = db.createRoom(
-    {
-      name: "Master Bathroom",
-      description: "Primary bathroom renovation",
-      clientId: client.id,
-    },
-    { id: SAMPLE_ROOM_ID }
-  );
-
   const wall = db.createWall(
     {
-      name: "North Wall",
+      name: "Master Bathroom - North Wall",
       widthFeet: 8,
       heightFeet: 8,
-      roomId: room.id,
     },
     { id: SAMPLE_WALL_ID }
   );
@@ -224,9 +151,9 @@ function initializeSampleData() {
     { id: SAMPLE_FIXTURE_IDS.outlet }
   );
 
-  return { client, room, wall };
+  return wall;
 }
 
 // Auto-initialize sample data on server startup
-const sampleData = initializeSampleData();
-export const sampleWallId = sampleData.wall.id;
+const sampleWall = initializeSampleData();
+export const sampleWallId = sampleWall.id;

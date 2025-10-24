@@ -1,27 +1,8 @@
-export interface Client {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Room {
-  id: string;
-  name: string;
-  description?: string;
-  clientId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 export interface Wall {
   id: string;
   name: string;
   widthFeet: number;  // Wall width in feet
   heightFeet: number; // Wall height in feet
-  roomId: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,14 +25,6 @@ export interface Fixture {
 // Extended types with relations
 export interface WallWithFixtures extends Wall {
   fixtures: Fixture[];
-}
-
-export interface RoomWithWalls extends Room {
-  walls: WallWithFixtures[];
-}
-
-export interface ClientWithRooms extends Client {
-  rooms: RoomWithWalls[];
 }
 
 // Scale constant: 0.5 inches = 1 foot (as specified)
